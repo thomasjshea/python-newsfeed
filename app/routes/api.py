@@ -5,13 +5,14 @@ import sys
 
 bp = Blueprint('api', __name__, url_prefix='/api')
 
+# route to create new user
 @bp.route('/users', methods=['POST'])
 def signup():
     data = request.get_json()
     db = get_db()
 
     try:
-        # attempt tocreate a new user
+        # attempt to create a new user
         newUser = User(
             username = data['username'],
             email = data['email'],
@@ -33,18 +34,21 @@ def signup():
 
     return jsonify(id = newUser.id)
 
+# route to logout
 @bp.route('/users/logout', methods=['POST'])
 def logout():
     # remove session variables
     session.clear()
     return '', 204
 
+# route to login
 @bp.route('users/login', methods=['POST'])
 def login():
     data = request.get_json()
     db = get_db()
 
     try:
+        # search for user by email in db
         user = db.query(User).filter(User.email == data['email']).one()
     except:
         print(sys.exc_info()[0])
@@ -82,3 +86,25 @@ def comment():
         return jsonify(message = 'Comment Failed'), 500
     
     return jsonify(id = newComment.id)
+
+@bp.route('/posts/upvote', methods=['PUT'])
+def upvote():
+    data = request.get_json()
+    db = get_db()
+
+    try:
+        # create a new vote with incoming id and session id
+        newVote = Vote(
+            post_id = data['post_id'],
+            user_id = session.get('user_id')
+        )
+
+        db.add(newVote)
+        db.commit()
+    except:
+        print(sys.exc_info()[0])
+
+        db.rollback()
+        return jsonify(message = 'Upvote Failed'), 500
+    
+    return '', 204
